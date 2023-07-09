@@ -30,6 +30,7 @@ class MinesweeperDiscrete(gym.Env):
         self.win_reward = config.WIN_REWARD
         self.lose_reward = config.LOSE_REWARD
         self.num_actions = 0
+        self.num_clicks = 0
         self.mines_board = self.place_mines(self.height, self.width, self.num_mines)
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
         self.encoded_board = np.zeros((self.height, self.width, self.num_features))
@@ -133,6 +134,13 @@ class MinesweeperDiscrete(gym.Env):
         """
         showed_board = state
         game_over = False
+
+        if self.is_mine(self.mines_board, x, y) and self.num_clicks == 0:
+            reshaped_mine_boards = self.mines_board.reshape(1, (self.width * self.height))
+            non_bomb_movement = np.random.choice(np.nonzero(reshaped_mine_boards != self.mine)[1])
+            x = int(non_bomb_movement / self.width)
+            y = int(non_bomb_movement % self.height)
+
         if self.is_mine(self.mines_board, x, y):
             showed_board[x, y] = self.mine
             game_over = True
@@ -141,6 +149,8 @@ class MinesweeperDiscrete(gym.Env):
             if showed_board[x, y] == 0:
                 showed_board = self.open_neighbour_cells(showed_board, x, y)
         self.showed_board = showed_board
+
+        self.num_clicks += 1
         return showed_board, game_over
     
     def encode_board(self, showed_board):
@@ -174,6 +184,7 @@ class MinesweeperDiscrete(gym.Env):
         self.mines_board = self.place_mines(self.height, self.width, self.num_mines)
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
         self.num_actions = 0
+        self.num_clicks = 0
         self.conv_input_board = self.get_conv_input(self.showed_board)
         return self.conv_input_board, {}
 
@@ -233,6 +244,7 @@ class MinesweeperDiscrete(gym.Env):
         done : bool           whether the game end or not
         info : {}
         """
+
         showed_board = state
         if not self.is_new_move(showed_board, x, y):
             return showed_board, self.repeated_step_reward, False, {}
