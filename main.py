@@ -17,7 +17,7 @@ def main():
     # Create and wrap the environment
     wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
-    total_num_episodes = int(50000)  # Total number of episodes
+    total_num_episodes = int(5000)  # Total number of episodes
     # Observation-space of InvertedPendulum-v4 (4)
     obs_space_dims = env.observation_space.shape[0] * env.observation_space.shape[1]
     # Action-space of InvertedPendulum-v4 (1)
@@ -33,6 +33,7 @@ def main():
     print("OBSERVATION", obs_space_dims, "ACTION", action_space_dims)
 
     reward_over_episodes = []
+    steps_over_episodes = []
     for episode in range(total_num_episodes):
         episode_steps = 0
         obs, info = wrapped_env.reset()
@@ -47,13 +48,14 @@ def main():
             done = terminated or truncated
         #print("EPISODE", episode, "STEPS", episode_steps, "REWARD", wrapped_env.return_queue[-1])
 
-        if episode % 1000 == 0:
-            avg_reward = int(np.mean(wrapped_env.return_queue))
-            print("Episode:", episode, "Average Reward:", avg_reward)
-
         agent.update()
         reward_over_episodes.append(wrapped_env.return_queue[-1])
-
+        steps_over_episodes.append(episode_steps)
+        if episode % 1000 == 0:
+            avg_reward = int(np.mean(wrapped_env.return_queue))
+            avg_steps = int(np.mean(steps_over_episodes))
+            print("Episode:", episode, "Average Reward:", avg_reward, "Current Average Steps:", avg_steps)
+    
     rewards_over_seeds.append(reward_over_episodes)
 
     # # Guardar

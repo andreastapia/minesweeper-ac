@@ -28,13 +28,13 @@ HEIGHT = 9
 STEP_REWARD = 1
 
 """ Reward value for winning the game """
-WIN_REWARD = 10
+WIN_REWARD = 20
 
 """ Reward value for losing the game """
 LOSE_REWARD = -10
 
 """ Reward value for repeated action """
-REPEATED_STEP_REWARD = -0.2
+REPEATED_STEP_REWARD = -1
 
 """ Amount of features of the one-hot encoded state """
 FEATURES = 11
