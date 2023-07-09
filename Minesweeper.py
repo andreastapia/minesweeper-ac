@@ -3,6 +3,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from random import randint
+import torch
 
 class MinesweeperDiscrete(gym.Env):
     metadata = {"render_modes": ["ansi"], "render_fps": 1}
@@ -32,6 +33,7 @@ class MinesweeperDiscrete(gym.Env):
         self.mines_board = self.place_mines(self.height, self.width, self.num_mines)
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
         self.encoded_board = np.zeros((self.height, self.width, self.num_features))
+        self.conv_input_board = np.zeros((1,1,self.height, self.width))
         self.observation_space = spaces.Box(low=self.closed, high=self.max_mines_around,
                                             shape=(self.height, self.width), dtype=np.int8)
         self.action_space = spaces.Discrete(self.height * self.width)
@@ -154,6 +156,13 @@ class MinesweeperDiscrete(gym.Env):
                     encoded_state[i, j, cell_state + 2] = 1
         return encoded_state
     
+    def get_conv_input(self, showed_board):
+        showed_board = torch.tensor(showed_board)
+        min_value = self.closed
+        max_value = self.max_mines_around
+        normalized = (showed_board - min_value) / (max_value - min_value)
+        return normalized.unsqueeze(0).unsqueeze(0)
+
     def reset(self, seed=None, options=None):
         """
         Reset a new game episode. See gym.Env.reset()
@@ -165,8 +174,8 @@ class MinesweeperDiscrete(gym.Env):
         self.mines_board = self.place_mines(self.height, self.width, self.num_mines)
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
         self.num_actions = 0
-        self.encoded_board = self.encode_board(self.showed_board)
-        return self.encoded_board, {}
+        self.conv_input_board = self.get_conv_input(self.showed_board)
+        return self.conv_input_board, {}
 
     def step(self, action):
         """
@@ -198,14 +207,14 @@ class MinesweeperDiscrete(gym.Env):
         next_state, reward, done, info = self.next_step(state, x, y)
         self.showed_board = next_state
         self.num_actions += 1
-        encoded_next_state = self.encode_board(next_state)
-        self.encoded_board = encoded_next_state
+        next_state_conv_input = self.get_conv_input(next_state)
+        self.conv_input_board = next_state_conv_input
 
         info['valid_actions'] = (next_state.flatten() == self.closed)
         info['num_actions'] = self.num_actions
         truncated = False
         
-        return encoded_next_state, reward, done, truncated, info
+        return next_state_conv_input, reward, done, truncated, info
 
     def next_step(self, state, x, y):
         """
