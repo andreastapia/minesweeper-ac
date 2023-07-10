@@ -29,11 +29,11 @@ class MinesweeperDiscrete(gym.Env):
         self.repeated_step_reward = config.REPEATED_STEP_REWARD
         self.win_reward = config.WIN_REWARD
         self.lose_reward = config.LOSE_REWARD
+        self.guess_step_reward = config.GUESS_REWARD
         self.num_actions = 0
         self.num_clicks = 0
         self.mines_board = self.place_mines(self.height, self.width, self.num_mines)
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
-        self.encoded_board = np.zeros((self.height, self.width, self.num_features))
         self.conv_input_board = np.zeros((1,1,self.height, self.width))
         self.observation_space = spaces.Box(low=self.closed, high=self.max_mines_around,
                                             shape=(self.height, self.width), dtype=np.int8)
@@ -58,6 +58,19 @@ class MinesweeperDiscrete(gym.Env):
         """return if the coordinate has a mine or not"""
         return mines_board[x, y] == self.mine
 
+    def check_guess(self, showed_board, x, y):
+        sum = 0
+        valid = 0
+        for _x in range(x - 1, x + 2):
+            for _y in range(y - 1, y + 2):
+                if self.is_valid(_x, _y) and (x,y) != (_x,_y):
+                    valid += 1
+                    sum += showed_board[_x, _y]
+
+        if sum == self.closed * valid:
+            return True
+        
+        return False
 
     def place_mines(self, height, width, num_mines):
         """generate a board, place mines randomly"""
@@ -153,18 +166,20 @@ class MinesweeperDiscrete(gym.Env):
         self.num_clicks += 1
         return showed_board, game_over
     
-    def encode_board(self, showed_board):
-        encoded_state = np.zeros((self.height, self.width, self.num_features))
-        for i in range(self.height):
-            for j in range(self.width):
-                cell_state = showed_board[i, j]
-                if cell_state == -2:  # Covered state
-                    encoded_state[i, j, 0] = 1
-                elif cell_state == -1: # Mine tile
-                    encoded_state[i, j, 0] = 1
-                else:  # Uncovered state
-                    encoded_state[i, j, cell_state + 2] = 1
-        return encoded_state
+    def get_onehot_encode_board(self, showed_board):
+        showed_board = torch.tensor(showed_board)
+        min_value = self.closed
+        max_value = self.max_mines_around
+        num_classes = max_value - min_value + 1
+
+        showed_board = showed_board + 2 #para que la matrix parta de 0 a 11 en la iteración
+        one_hot_matrix = torch.zeros((*showed_board.shape, num_classes), dtype=torch.float)
+        for i in range(num_classes):
+            one_hot_matrix[..., i] = (showed_board == i).float()
+        
+        reshaped_matrix = one_hot_matrix.permute(2, 0, 1).unsqueeze(0)
+
+        return reshaped_matrix
     
     def get_conv_input(self, showed_board):
         showed_board = torch.tensor(showed_board)
@@ -185,7 +200,7 @@ class MinesweeperDiscrete(gym.Env):
         self.showed_board = np.ones((self.height, self.width), dtype=int) * self.closed
         self.num_actions = 0
         self.num_clicks = 0
-        self.conv_input_board = self.get_conv_input(self.showed_board)
+        self.conv_input_board = self.get_onehot_encode_board(self.showed_board)
         return self.conv_input_board, {}
 
     def step(self, action):
@@ -218,7 +233,7 @@ class MinesweeperDiscrete(gym.Env):
         next_state, reward, done, info = self.next_step(state, x, y)
         self.showed_board = next_state
         self.num_actions += 1
-        next_state_conv_input = self.get_conv_input(next_state)
+        next_state_conv_input = self.get_onehot_encode_board(next_state)
         self.conv_input_board = next_state_conv_input
 
         info['valid_actions'] = (next_state.flatten() == self.closed)
@@ -248,8 +263,13 @@ class MinesweeperDiscrete(gym.Env):
         showed_board = state
         if not self.is_new_move(showed_board, x, y):
             return showed_board, self.repeated_step_reward, False, {}
+        
         while True:
             state, game_over = self.get_next_state(showed_board, x, y)
+
+            if self.check_guess(showed_board, x, y):
+                return state, self.guess_step_reward, False, {}
+
             if not game_over:
                 if self.is_win(state):
                     print("HORRAAAAAY!")

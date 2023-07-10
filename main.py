@@ -11,62 +11,59 @@ from ActorCriticAgent import ActorCriticAgent
 rng = np.random.default_rng()
 plt.rcParams["figure.figsize"] = (10, 5)
 
+def running_average(x, N):
+    cumsum = np.cumsum(np.insert(np.array(x), 0, 0)) 
+    return (cumsum[N:] - cumsum[:-N]) / N
+
 def main():
-    print("STARTING")
+
     env = MinesweeperDiscrete()
     # Create and wrap the environment
-    wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
+    #wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
-    total_num_episodes = int(5000)  # Total number of episodes
-    # Observation-space of InvertedPendulum-v4 (4)
-    obs_space_dims = env.observation_space.shape[0] * env.observation_space.shape[1]
-    # Action-space of InvertedPendulum-v4 (1)
-    action_space_dims = env.action_space.n
-    rewards_over_seeds = []
+    total_num_episodes = int(1)  # Total number of episodes
 
-    obs, _ = wrapped_env.reset(seed=1)
+    agent = ActorCriticAgent(11,64,81,0.01,0.99)
 
-    agent = ActorCriticAgent(1,32,81,0.005,0.99)
-
-
-    print("OBSERVATION SHAPE", env.observation_space.shape, "ACTION SHAPE", env.action_space.shape)
-    print("OBSERVATION", obs_space_dims, "ACTION", action_space_dims)
-
-    reward_over_episodes = []
-    steps_over_episodes = []
+    rewards = []
+    steps = []
     for episode in range(total_num_episodes):
         episode_steps = 0
-        obs, info = wrapped_env.reset()
+        obs, info = env.reset()
         done = False
-        ep_reward = 0
+        episode_reward = 0.0
         while not done:
             action = agent.act(obs)
-            obs, reward, terminated, truncated, _ = wrapped_env.step(action)
+            obs, reward, terminated, truncated, _ = env.step(action)
             agent.rewards.append(reward)
-            ep_reward += reward
+            episode_reward += reward
             episode_steps += 1
             done = terminated or truncated
-        #print("EPISODE", episode, "STEPS", episode_steps, "REWARD", wrapped_env.return_queue[-1])
-
+       
         agent.update()
-        reward_over_episodes.append(wrapped_env.return_queue[-1])
-        steps_over_episodes.append(episode_steps)
+        rewards.append(episode_reward)
+        steps.append(episode_steps)
         if episode % 1000 == 0:
-            avg_reward = int(np.mean(wrapped_env.return_queue))
-            avg_steps = int(np.mean(steps_over_episodes))
+            avg_reward = int(np.mean(rewards))
+            avg_steps = int(np.mean(steps))
             print("Episode:", episode, "Average Reward:", avg_reward, "Current Average Steps:", avg_steps)
-    
-    rewards_over_seeds.append(reward_over_episodes)
+
 
     # # Guardar
-    #torch.save(agent, 'trained_model.pt')
-    rewards_to_plot = [[reward[0] for reward in rewards] for rewards in rewards_over_seeds]
-    df1 = pd.DataFrame(rewards_to_plot).melt()
-    df1.rename(columns={"variable": "episodes", "value": "reward"}, inplace=True)
-    sns.set(style="darkgrid", context="talk", palette="rainbow")
-    sns.lineplot(x="episodes", y="reward", data=df1).set(
-        title="Actor-Critic for Minesweeper"
-    )
+    torch.save(agent, 'trained_model.pt')
+
+    plt.figure(figsize=(15, 6))
+    plt.subplot(121)
+    plt.plot(rewards)
+    plt.plot(running_average(reward, 1000))
+    plt.xlabel("Episodes")
+    plt.ylabel("Returns")
+    plt.subplot(122)
+    plt.plot(steps)
+    plt.plot(running_average(steps, 1000))
+    plt.xlabel("Episodes")
+    plt.ylabel("steps")
+    plt.show()
     plt.show()
 
 
