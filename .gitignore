@@ -1,3 +1,4 @@
 __pycache__
 venv/
+trained_model_*.pt
 trained_model.pt

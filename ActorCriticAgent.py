@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
-## Combina el Actor y Crítico en una sola red
+## Combina el Actor y Crítico en una sola red, no se usa actualmente
 class ACPolicy(nn.Module):
     def __init__(self, input_channels, hidden_size, output_size):
         super().__init__()
@@ -34,10 +34,10 @@ class Actor(nn.Module):
     def __init__(self, input_channels, hidden_size, output_size):
         super().__init__()
         hidden_space1 = 512
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
-        self.fc_layer1 = nn.Linear(hidden_size * 9 * 9, hidden_space1)
+        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
+        self.fc_layer1 = nn.Linear(hidden_size * 3 * 3, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, output_size)
 
     def forward(self, x):
@@ -56,10 +56,10 @@ class Critic(nn.Module):
     def __init__(self, input_channels, hidden_size):
         super().__init__()
         hidden_space1 = 512
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
-        self.fc_layer1 = nn.Linear(hidden_size * 9 * 9, hidden_space1)
+        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
+        self.fc_layer1 = nn.Linear(hidden_size * 3 * 3, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, 1)
 
     def forward(self, x):
