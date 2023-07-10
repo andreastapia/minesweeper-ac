@@ -31,10 +31,10 @@ STEP_REWARD = 1
 WIN_REWARD = 10
 
 """ Reward value for losing the game """
-LOSE_REWARD = -10
+LOSE_REWARD = -20
 
 """ Reward value for making a guess move """
-GUESS_REWARD = -1
+GUESS_REWARD = -2
 
 """ Reward value for repeated action """
 REPEATED_STEP_REWARD = -1

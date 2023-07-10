@@ -1,6 +1,4 @@
 import torch
-import pandas as pd
-import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 import gymnasium as gym
@@ -18,12 +16,10 @@ def running_average(x, N):
 def main():
 
     env = MinesweeperDiscrete()
-    # Create and wrap the environment
-    #wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
-    total_num_episodes = int(1)  # Total number of episodes
+    total_num_episodes = int(100000)  # Total number of episodes
 
-    agent = ActorCriticAgent(11,64,81,0.01,0.99)
+    agent = ActorCriticAgent(11,64,81,0.0015,0.99)
 
     rewards = []
     steps = []
@@ -34,6 +30,7 @@ def main():
         episode_reward = 0.0
         while not done:
             action = agent.act(obs)
+            #print("EPISODE", episode, "ACTION", action)
             obs, reward, terminated, truncated, _ = env.step(action)
             agent.rewards.append(reward)
             episode_reward += reward
@@ -43,6 +40,7 @@ def main():
         agent.update()
         rewards.append(episode_reward)
         steps.append(episode_steps)
+
         if episode % 1000 == 0:
             avg_reward = int(np.mean(rewards))
             avg_steps = int(np.mean(steps))
