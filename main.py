@@ -17,15 +17,15 @@ def main():
 
     env = MinesweeperDiscrete()
 
-    total_num_episodes = int(100000)  # Total number of episodes
+    total_num_episodes = int(20000)  # Total number of episodes
 
     #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-    agent = ActorCriticAgent(11,64,81,0.0001,0.99)
+    agent = ActorCriticAgent(11,64,81,0.001,0.99)
 
     rewards = []
     steps = []
     for episode in range(total_num_episodes):
-        print(episode)
+        #print(episode)
         episode_steps = 0
         obs, info = env.reset()
         done = False
@@ -44,12 +44,13 @@ def main():
         steps.append(episode_steps)
 
         if episode % 1000 == 0:
-            filename = "trained_model_{episode}.pt"
-            torch.save(agent, filename.format(episode=episode))
             avg_reward = int(np.mean(rewards))
             avg_steps = int(np.mean(steps))
             print("Episode:", episode, "Average Reward:", avg_reward, "Current Average Steps:", avg_steps)
 
+        if episode % 10000 == 0 and episode != 0:
+            filename = "trained_model_{episode}.pt"
+            torch.save(agent, filename.format(episode=episode))
 
     # # Guardar
     torch.save(agent, 'trained_model.pt')

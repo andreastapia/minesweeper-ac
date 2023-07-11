@@ -133,24 +133,28 @@ class ActorCriticAgent:
 
         returns = torch.tensor(returns)
 
-        returns = (returns - returns.mean()) / (returns.std() + self.eps)
+        #normalized returns, may affect training when winning suddenly
+        #returns = (returns - returns.mean()) / (returns.std() + self.eps)
         
         for log_prob, value, R in zip(self.saved_log_probs, self.saved_values, returns):
             advantage = R - value
+            advantage = advantage.detach()
 
             # calculate actor (policy) loss
             actor_loss.append(-log_prob * advantage)
 
-            # calculate critic (value) loss using MSE smooth loss
+            # calculate critic (value) loss using MSE 
             critic_loss.append(F.mse_loss(value[0], R))
 
         self.optimizer_actor.zero_grad()
         self.optimizer_critic.zero_grad()
         loss_actor = torch.stack(actor_loss).sum()
         loss_critic = torch.stack(critic_loss).sum()
-        loss = loss_actor + loss_critic
-        loss.backward()
-        self.optimizer_actor.step()
+        
+        loss_actor.backward()
+        loss_critic.backward() 
+
+        self.optimizer_actor.step()               
         self.optimizer_critic.step()
 
         self.selected_actions = []
