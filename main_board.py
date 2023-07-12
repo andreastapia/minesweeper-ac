@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gymnasium as gym
 
-from Minesweeper import MinesweeperDiscrete
-from ActorCriticAgent import ActorCriticAgent
+from fullboard.MinesweeperBoard import MinesweeperDiscrete
+from fullboard.ActorCriticAgentBoard import ActorCriticAgent
 
 rng = np.random.default_rng()
 plt.rcParams["figure.figsize"] = (10, 5)
@@ -17,10 +17,10 @@ def main():
 
     env = MinesweeperDiscrete()
 
-    total_num_episodes = int(5e5)  # Total number of episodes
+    total_num_episodes = int(20000)  # Total number of episodes
 
     #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-    agent = ActorCriticAgent(11,64,81,0.001,0.99)
+    agent = ActorCriticAgent(1,64,81,0.001,0.99)
 
     rewards = []
     steps = []
@@ -48,7 +48,7 @@ def main():
             avg_steps = int(np.mean(steps))
             print("Episode:", episode, "Average Reward:", avg_reward, "Current Average Steps:", avg_steps)
 
-        if episode % 100000 == 0 and episode != 0:
+        if episode % 10000 == 0 and episode != 0:
             filename = "trained_model_{episode}.pt"
             torch.save(agent, filename.format(episode=episode))
 
