@@ -20,7 +20,7 @@ def main():
     total_num_episodes = int(20000)  # Total number of episodes
 
     #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-    agent = ActorCriticAgent(1,64,81,0.001,0.99)
+    agent = ActorCriticAgent(1,128,81,0.0005,0.99)
 
     rewards = []
     steps = []
