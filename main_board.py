@@ -1,3 +1,4 @@
+import config
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,13 +18,14 @@ def main():
 
     env = MinesweeperDiscrete()
 
-    total_num_episodes = int(20000)  # Total number of episodes
+    total_num_episodes = int(5e5)  # Total number of episodes
 
     #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-    agent = ActorCriticAgent(1,128,81,0.0005,0.99)
+    agent = ActorCriticAgent(1,32,81,0.0005,0.99)
 
     rewards = []
     steps = []
+    games_won = 0
     for episode in range(total_num_episodes):
         #print(episode)
         episode_steps = 0
@@ -32,23 +34,26 @@ def main():
         episode_reward = 0.0
         while not done:
             action = agent.act(obs)
-            #print("EPISODE", episode, "ACTION", action)
             obs, reward, terminated, truncated, _ = env.step(action)
+            if reward == config.WIN_REWARD:
+                games_won += 1
+            #print(env.showed_board)
             agent.rewards.append(reward)
             episode_reward += reward
             episode_steps += 1
             done = terminated or truncated
-       
+
+        
         agent.update()
         rewards.append(episode_reward)
         steps.append(episode_steps)
 
         if episode % 1000 == 0:
-            avg_reward = int(np.mean(rewards))
-            avg_steps = int(np.mean(steps))
+            avg_reward = np.mean(rewards)
+            avg_steps = np.mean(steps)
             print("Episode:", episode, "Average Reward:", avg_reward, "Current Average Steps:", avg_steps)
 
-        if episode % 10000 == 0 and episode != 0:
+        if episode % 100000 == 0 and episode != 0:
             filename = "trained_model_{episode}.pt"
             torch.save(agent, filename.format(episode=episode))
 
@@ -56,16 +61,26 @@ def main():
     torch.save(agent, 'trained_model.pt')
 
     plt.figure(figsize=(15, 6))
-    plt.subplot(121)
+    plt.subplot(221)
     plt.plot(rewards)
     plt.plot(running_average(reward, 1000))
     plt.xlabel("Episodes")
     plt.ylabel("Returns")
-    plt.subplot(122)
+    plt.subplot(222)
     plt.plot(steps)
     plt.plot(running_average(steps, 1000))
     plt.xlabel("Episodes")
     plt.ylabel("steps")
+    plt.subplot(223)
+    plt.plot(agent.get_critic_training_loss())
+    plt.plot(running_average(agent.get_critic_training_loss(), 1000))
+    plt.xlabel("Episodes")
+    plt.ylabel("Critic MSE Loss")
+    plt.subplot(224)
+    plt.plot(agent.get_actor_training_loss())
+    plt.plot(running_average(agent.get_actor_training_loss(), 1000))
+    plt.xlabel("Episodes")
+    plt.ylabel("Actor Loss")
     plt.show()
     plt.show()
 

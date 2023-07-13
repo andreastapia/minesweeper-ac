@@ -263,22 +263,21 @@ class MinesweeperDiscrete(gym.Env):
         showed_board = state
         if not self.is_new_move(showed_board, x, y):
             return showed_board, self.repeated_step_reward, False, {}
-        
-        while True:
-            state, game_over = self.get_next_state(showed_board, x, y)
 
-            if self.check_guess(showed_board, x, y):
-                return state, self.guess_step_reward, False, {}
+        next_state, game_over = self.get_next_state(showed_board, x, y)
 
-            if not game_over:
-                if self.is_win(state):
-                    print("HORRAAAAAY!")
-                    return state, self.win_reward, True, {}
-                else:
-                    return state, self.step_reward, False, {}
+        if self.check_guess(showed_board, x, y):
+            return next_state, self.guess_step_reward, False, {}
+
+        if not game_over:
+            if self.is_win(next_state):
+                print("HORRAAAAAY!")
+                return next_state, self.win_reward, True, {}
             else:
-                #print("BOOOOM!")
-                return state, self.lose_reward, True, {}
+                return next_state, self.step_reward, False, {}
+        else:
+            #print("BOOOOM!")
+            return next_state, self.lose_reward, True, {}
     
     def render(self, mode='human'):
         print(self.showed_board)

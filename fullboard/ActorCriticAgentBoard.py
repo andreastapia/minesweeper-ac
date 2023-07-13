@@ -10,17 +10,17 @@ from torch.distributions import Categorical
 class Actor(nn.Module):
     def __init__(self, input_channels, hidden_size, output_size):
         super().__init__()
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-                init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        #         init.xavier_uniform_(m.weight)
+        #         if m.bias is not None:
+        #             init.constant_(m.bias, 0)
         
         hidden_space1 = 128
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=0)
-        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
-        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
-        self.fc_layer1 = nn.Linear(hidden_size * 3 * 3, hidden_space1)
+        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=5, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, 32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.fc_layer1 = nn.Linear(64*7*7, hidden_space1)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
         self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, output_size)
@@ -30,11 +30,12 @@ class Actor(nn.Module):
         x = torch.relu(self.conv1(x.float()))
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
+        #print(x.shape)
         x = torch.flatten(x)
         x = torch.relu(self.fc_layer1(x))
         x = torch.relu(self.fc_layer2(x))
-        x = torch.relu(self.fc_layer3(x))
-        x = self.dropout(x)
+        #x = torch.relu(self.fc_layer3(x))
+        #x = self.dropout(x)
         x = self.out_layer(x)
         x = torch.softmax(x, dim=0)
 
@@ -44,17 +45,17 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, input_channels, hidden_size):
         super().__init__()
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-                init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+        #         init.xavier_uniform_(m.weight)
+        #         if m.bias is not None:
+        #             init.constant_(m.bias, 0)
 
         hidden_space1 = 128
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=3, stride=1, padding=0)
-        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
-        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=0)
-        self.fc_layer1 = nn.Linear(hidden_size * 3 * 3, hidden_space1)
+        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=5, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, 32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
+        self.fc_layer1 = nn.Linear(64*7*7, hidden_space1)
         self.dropout = nn.Dropout(0.5)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
         self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
@@ -67,8 +68,8 @@ class Critic(nn.Module):
         x = torch.flatten(x)
         x = torch.relu(self.fc_layer1(x))
         x = torch.relu(self.fc_layer2(x))
-        x = torch.relu(self.fc_layer3(x))
-        x = self.dropout(x)
+        #x = torch.relu(self.fc_layer3(x))
+        #x = self.dropout(x)
         x = self.out_layer(x)
 
         return x
@@ -82,12 +83,17 @@ class ActorCriticAgent:
         self.optimizer_critic = optim.Adam(self.critic.parameters(), lr=learning_rate, weight_decay=0.0001)
         self.gamma = gamma
         self.eps = 1e-8
-        self.eps_exp = 0.01
+        self.eps_exp_end = 0.1
+        self.eps_exp_start = 1.0
+        self.eps_exp_anneal_steps = 50000
+        self.eps_exp_curr = self.eps_exp_start
         self.exploration_noise = 0.1
         self.saved_log_probs = []
         self.rewards = []
         self.saved_values = []
         self.selected_actions = []
+        self.actor_losses = []
+        self.critic_losses = []
         self.output_size = output_size
 
     def act(self, state):
@@ -111,7 +117,7 @@ class ActorCriticAgent:
 
         #e-gredy
         p = np.random.random()
-        if p < self.eps_exp:
+        if p < self.eps_exp_curr:
             action = torch.tensor(np.random.choice(range(self.output_size)))
 
         self.saved_log_probs.append(distrib.log_prob(action))
@@ -151,16 +157,25 @@ class ActorCriticAgent:
         loss_actor = torch.stack(actor_loss).sum()
         loss_critic = torch.stack(critic_loss).sum()
         
+        #self.actor_losses.append(loss_actor)
+        #self.critic_losses.append(loss_critic)
         loss_actor.backward()
         loss_critic.backward() 
 
         self.optimizer_actor.step()               
         self.optimizer_critic.step()
 
+        self.eps_exp_curr = np.maximum(self.eps_exp_end, self.eps_exp_curr - (self.eps_exp_start - self.eps_exp_end) / self.eps_exp_anneal_steps)
         self.selected_actions = []
         self.saved_log_probs = []
         self.saved_values = []
         self.rewards = []
+
+    def get_actor_training_loss(self):
+        return [tensor.item() for tensor in self.actor_losses] 
+
+    def get_critic_training_loss(self):
+        return [tensor.item() for tensor in self.critic_losses]
 
     def train(n_steps):
         pass
