@@ -12,19 +12,17 @@ class Actor(nn.Module):
     def __init__(self, input_channels, hidden_size, output_size):
         super().__init__()
         
-        hidden_space1 = 128
+        hidden_space1 = 256
         self.conv1 = nn.Conv2d(input_channels, hidden_size, kernel_size=5, stride=1, padding=1)
         self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
         self.fc_layer1 = nn.Linear(hidden_size * 7 * 7, hidden_space1)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
-        self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, output_size)
         self.dropout = nn.Dropout(0.5)
 
         init.kaiming_uniform_(self.fc_layer1.weight)
         init.kaiming_uniform_(self.fc_layer2.weight)
-        init.kaiming_uniform_(self.fc_layer3.weight)
         init.kaiming_uniform_(self.conv1.weight)
         init.kaiming_uniform_(self.conv2.weight)
         init.kaiming_uniform_(self.conv3.weight)
@@ -36,8 +34,7 @@ class Actor(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = F.relu(self.fc_layer1(x))
         x = F.relu(self.fc_layer2(x))
-        #x = F.relu(self.fc_layer3(x))
-        #x = self.dropout(x)
+        x = self.dropout(x)
         x = self.out_layer(x)
         x = F.softmax(x, dim=-1)
 
@@ -48,19 +45,17 @@ class Critic(nn.Module):
     def __init__(self, input_channels, hidden_size):
         super().__init__()
 
-        hidden_space1 = 512
+        hidden_space1 = 256
         self.conv1 = nn.Conv2d(input_channels, hidden_size, kernel_size=5, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(hidden_size, 32, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.fc_layer1 = nn.Linear(64 * 7 * 7, hidden_space1)
-        self.dropout = nn.Dropout(0.5)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
+        self.fc_layer1 = nn.Linear(hidden_size * 7 * 7, hidden_space1)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
-        self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, 1)
+        self.dropout = nn.Dropout(0.5)
 
         init.kaiming_uniform_(self.fc_layer1.weight)
         init.kaiming_uniform_(self.fc_layer2.weight)
-        init.kaiming_uniform_(self.fc_layer3.weight)
         init.kaiming_uniform_(self.conv1.weight)
         init.kaiming_uniform_(self.conv2.weight)
         init.kaiming_uniform_(self.conv3.weight)
@@ -72,8 +67,7 @@ class Critic(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = F.relu(self.fc_layer1(x))
         x = F.relu(self.fc_layer2(x))
-        #x = F.relu(self.fc_layer3(x))
-        #x = self.dropout(x)
+        x = self.dropout(x)
         x = self.out_layer(x)
 
         return x
@@ -116,7 +110,6 @@ class ActorCriticAgent:
         noisy_action_probs = action_probs + torch.rand_like(action_probs)*self.exploration_noise
 
         distrib = Categorical(noisy_action_probs)
-
         action = distrib.sample()
 
         #e-gredy

@@ -1,7 +1,8 @@
 import torch 
+import config
 from fullboard.MinesweeperBoard import MinesweeperDiscrete
 
-TEST_EPISODES = 100
+TEST_EPISODES = 2000
 PATH = './trained_model_300000.pt'
 model = torch.load(PATH)
 
@@ -20,7 +21,7 @@ for episode in range(TEST_EPISODES):
         # if reward == -10:
         #     print("BOOM")
         
-        if reward == 10:
+        if reward == config.WIN_REWARD:
             print("WIN")
             games_won += 1
         # Pass the state through the model to get action probabilities

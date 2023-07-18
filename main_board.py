@@ -18,10 +18,10 @@ def main():
 
     env = MinesweeperDiscrete()
 
-    total_num_episodes = int(5e5)  # Total number of episodes
+    total_num_episodes = int(5e4)  # Total number of episodes
 
     #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-    agent = ActorCriticAgent(1,128,81,0.001,0.99)
+    agent = ActorCriticAgent(1,16,81,0.0005,0.99)
 
     rewards = []
     last_1k = []
@@ -38,14 +38,11 @@ def main():
             obs, reward, terminated, truncated, _ = env.step(action)
             if reward == config.WIN_REWARD:
                 games_won += 1
-            #print(env.showed_board)
-            #print(reward)
             agent.rewards.append(reward)
             episode_reward += reward
             episode_steps += 1
             done = terminated or truncated
 
-        #print("OUTPUT WEIGHTS CRITIC", agent.critic.out_layer.weight.data)
         agent.update()
         rewards.append(episode_reward)
         steps.append(episode_steps)
@@ -67,10 +64,13 @@ def main():
             print("GAMES WON", games_won)
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-        if episode % 100000 == 0 and episode != 0:
+        if episode % 10000 == 0 and episode != 0:
             filename = "trained_model_{episode}.pt"
             torch.save(agent, filename.format(episode=episode))
-
+    
+    print("training finished, games won:", games_won)
+    np.savetxt('rewards', rewards, delimiter=',')
+    np.savetxt('steps', steps)
     # # Guardar
     torch.save(agent, 'trained_model.pt')
 
