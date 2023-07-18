@@ -18,15 +18,18 @@ def running_average(x, N):
 
 
 def main():
-    CONV_SIZE = 16
-    while CONV_SIZE <= 256:
+    CONV_SIZE = 128
+    learning_rates = [0.01, 0.005, 0.001, 0.0005, 0.0001]
+    games_won_reg = []
+    times_reg = []
+    for learning_rate in learning_rates:
         st = time.time()
         env = MinesweeperDiscrete()
 
         total_num_episodes = int(5e4)  # Total number of episodes
 
         #input_channels, conv_hidden, output_channels, learning_rate, gammaS
-        agent = ActorCriticAgent(1,CONV_SIZE,81,0.0005,0.99)
+        agent = ActorCriticAgent(1,CONV_SIZE,81,learning_rate,0.99)
 
         rewards = []
         last_1k = []
@@ -65,9 +68,9 @@ def main():
                 last_1k = []
 
             if episode % 10000 == 0:            
-                print("WIGHT SHAPE", agent.critic.out_layer.weight.data.shape)
-                print("OUTPUT WEIGHTS CRITIC", agent.critic.out_layer.weight.data)
-                print("MAXIMUM WEIGHT", agent.critic.out_layer.weight.data.max())
+                #print("WIGHT SHAPE", agent.critic.out_layer.weight.data.shape)
+                #print("OUTPUT WEIGHTS CRITIC", agent.critic.out_layer.weight.data)
+                #print("MAXIMUM WEIGHT", agent.critic.out_layer.weight.data.max())
                 print("GAMES WON", games_won)
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -75,24 +78,29 @@ def main():
                 filename = "trained_model_{episode}.pt"
                 torch.save(agent, filename.format(episode=episode))
         
+        
         et = time.time()
         elapsed_time = et - st
-
-        
+        games_won_reg.append(games_won)
+        times_reg.append(elapsed_time)
         print('Execution time:', elapsed_time, 'seconds')
 
         print("training finished, games won:", games_won)
-        filename = "rewards_conv_{episode}.txt"
-        np.savetxt('./results/' + filename.format(episode=CONV_SIZE), rewards, delimiter=',')
-        filename = "steps_conv_{episode}.txt"
-        np.savetxt('./results/' + filename.format(episode=CONV_SIZE), steps, delimiter=',')
-        filename = "avg1k_conv_{episode}.txt"
-        np.savetxt('./results/' + filename.format(episode=CONV_SIZE), steps, delimiter=',')
+        lr_txt = str(learning_rate).split('.')[-1]
+        filename = "rewards_lr_{episode}.txt"
+        np.savetxt('./results/' + filename.format(episode=lr_txt), rewards, delimiter=',')
+        filename = "steps_lr_{episode}.txt"
+        np.savetxt('./results/' + filename.format(episode=lr_txt), steps, delimiter=',')
+        filename = "avg1k_lr_{episode}.txt"
+        np.savetxt('./results/' + filename.format(episode=lr_txt), steps, delimiter=',')
         # # Guardar
-        filename = "trained_model_conv_{episode}.pt"
-        torch.save(agent, './trained_models/' + filename.format(episode=CONV_SIZE))
-        CONV_SIZE = CONV_SIZE * 2
+        filename = "trained_model_lr_{episode}.pt"
+        torch.save(agent, './trained_models/' + filename.format(episode=lr_txt))
 
+    filename = "./results/games_won_lr.txt"
+    np.savetxt(filename, games_won_reg, delimiter=',')
+    filename = "./results/times_lr.txt"
+    np.savetxt(filename, times_reg, delimiter=',')
     plt.figure(figsize=(15, 6))
     plt.subplot(221)
     plt.plot(rewards)
