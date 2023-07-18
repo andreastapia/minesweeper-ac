@@ -7,10 +7,10 @@ EPISODES = 30000
 DEFAULT_VALUE =  0
 
 """ Value when tile has a mine """
-MINE = -1
+MINE = -2
 
 """ Value when tile is closed """
-CLOSED = -2
+CLOSED = -1
 
 """ Value for maximum mines around tile """
 MAX_MINES_AROUND = 8
@@ -25,19 +25,19 @@ WIDTH = 9
 HEIGHT = 9
 
 """ Reward value for correct movement """
-STEP_REWARD = 1
+STEP_REWARD = 2
 
 """ Reward value for winning the game """
-WIN_REWARD = 81
+WIN_REWARD = 20
 
 """ Reward value for losing the game """
-LOSE_REWARD = -81
+LOSE_REWARD = -10
 
 """ Reward value for making a guess move """
-GUESS_REWARD = -0.5
+GUESS_REWARD = -1
 
 """ Reward value for repeated action """
-REPEATED_STEP_REWARD = -0.5
+REPEATED_STEP_REWARD = -1
 
 """ Amount of features of the one-hot encoded state """
 FEATURES = 11

@@ -4,40 +4,42 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.nn.init as init
+import torch.nn.utils as nn_utils
 from torch.distributions import Categorical
 
 #Actor que retorna una distribución de probabilidades de acciones
 class Actor(nn.Module):
     def __init__(self, input_channels, hidden_size, output_size):
         super().__init__()
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-        #         init.xavier_uniform_(m.weight)
-        #         if m.bias is not None:
-        #             init.constant_(m.bias, 0)
         
         hidden_space1 = 128
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=5, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(hidden_size, 32, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.fc_layer1 = nn.Linear(64*7*7, hidden_space1)
+        self.conv1 = nn.Conv2d(input_channels, hidden_size, kernel_size=5, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(hidden_size, hidden_size, kernel_size=3, stride=1, padding=1)
+        self.fc_layer1 = nn.Linear(hidden_size * 7 * 7, hidden_space1)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
         self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, output_size)
         self.dropout = nn.Dropout(0.5)
 
+        init.kaiming_uniform_(self.fc_layer1.weight)
+        init.kaiming_uniform_(self.fc_layer2.weight)
+        init.kaiming_uniform_(self.fc_layer3.weight)
+        init.kaiming_uniform_(self.conv1.weight)
+        init.kaiming_uniform_(self.conv2.weight)
+        init.kaiming_uniform_(self.conv3.weight)
+
     def forward(self, x):
-        x = torch.relu(self.conv1(x.float()))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        #print(x.shape)
-        x = torch.flatten(x)
-        x = torch.relu(self.fc_layer1(x))
-        x = torch.relu(self.fc_layer2(x))
-        #x = torch.relu(self.fc_layer3(x))
+        x = F.relu(self.conv1(x.float()))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = torch.flatten(x, start_dim=1)
+        x = F.relu(self.fc_layer1(x))
+        x = F.relu(self.fc_layer2(x))
+        #x = F.relu(self.fc_layer3(x))
         #x = self.dropout(x)
         x = self.out_layer(x)
-        x = torch.softmax(x, dim=0)
+        x = F.softmax(x, dim=-1)
 
         return x
 
@@ -45,30 +47,32 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, input_channels, hidden_size):
         super().__init__()
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
-        #         init.xavier_uniform_(m.weight)
-        #         if m.bias is not None:
-        #             init.constant_(m.bias, 0)
 
-        hidden_space1 = 128
-        self.conv1 = nn.Conv2d(input_channels,hidden_size, kernel_size=5, stride=1, padding=1)
+        hidden_space1 = 512
+        self.conv1 = nn.Conv2d(input_channels, hidden_size, kernel_size=5, stride=1, padding=1)
         self.conv2 = nn.Conv2d(hidden_size, 32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.fc_layer1 = nn.Linear(64*7*7, hidden_space1)
+        self.fc_layer1 = nn.Linear(64 * 7 * 7, hidden_space1)
         self.dropout = nn.Dropout(0.5)
         self.fc_layer2 = nn.Linear(hidden_space1, hidden_space1)
         self.fc_layer3 = nn.Linear(hidden_space1, hidden_space1)
         self.out_layer = nn.Linear(hidden_space1, 1)
 
+        init.kaiming_uniform_(self.fc_layer1.weight)
+        init.kaiming_uniform_(self.fc_layer2.weight)
+        init.kaiming_uniform_(self.fc_layer3.weight)
+        init.kaiming_uniform_(self.conv1.weight)
+        init.kaiming_uniform_(self.conv2.weight)
+        init.kaiming_uniform_(self.conv3.weight)
+
     def forward(self, x):
-        x = torch.relu(self.conv1(x.float()))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        x = torch.flatten(x)
-        x = torch.relu(self.fc_layer1(x))
-        x = torch.relu(self.fc_layer2(x))
-        #x = torch.relu(self.fc_layer3(x))
+        x = F.relu(self.conv1(x.float()))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = torch.flatten(x, start_dim=1)
+        x = F.relu(self.fc_layer1(x))
+        x = F.relu(self.fc_layer2(x))
+        #x = F.relu(self.fc_layer3(x))
         #x = self.dropout(x)
         x = self.out_layer(x)
 
@@ -85,7 +89,7 @@ class ActorCriticAgent:
         self.eps = 1e-8
         self.eps_exp_end = 0.1
         self.eps_exp_start = 1.0
-        self.eps_exp_anneal_steps = 50000
+        self.eps_exp_anneal_steps = 10000
         self.eps_exp_curr = self.eps_exp_start
         self.exploration_noise = 0.1
         self.saved_log_probs = []
@@ -150,7 +154,7 @@ class ActorCriticAgent:
             actor_loss.append(-log_prob * advantage)
 
             # calculate critic (value) loss using MSE 
-            critic_loss.append(F.mse_loss(value[0], R))
+            critic_loss.append(F.mse_loss(value, R))
 
         self.optimizer_actor.zero_grad()
         self.optimizer_critic.zero_grad()
@@ -161,6 +165,10 @@ class ActorCriticAgent:
         #self.critic_losses.append(loss_critic)
         loss_actor.backward()
         loss_critic.backward() 
+
+        max_grad_norm = 1.0  # Maximum gradient norm
+        nn_utils.clip_grad_norm_(self.actor.parameters(), max_grad_norm)
+        nn_utils.clip_grad_norm_(self.critic.parameters(), max_grad_norm)
 
         self.optimizer_actor.step()               
         self.optimizer_critic.step()

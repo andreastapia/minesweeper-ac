@@ -185,7 +185,8 @@ class MinesweeperDiscrete(gym.Env):
         showed_board = torch.tensor(showed_board)
         min_value = self.closed
         max_value = self.max_mines_around
-        normalized = (showed_board - min_value) / (max_value - min_value)
+        normalized = showed_board / 8
+        #normalized = (showed_board - min_value) / (max_value - min_value)
         return normalized.unsqueeze(0).unsqueeze(0)
 
     def reset(self, seed=None, options=None):
