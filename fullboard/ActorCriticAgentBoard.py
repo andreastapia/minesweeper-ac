@@ -147,7 +147,8 @@ class ActorCriticAgent:
             actor_loss.append(-log_prob * advantage)
 
             # calculate critic (value) loss using MSE 
-            critic_loss.append(F.mse_loss(value, R))
+            #print(value, R)
+            critic_loss.append(F.mse_loss(torch.squeeze(value), R))
 
         self.optimizer_actor.zero_grad()
         self.optimizer_critic.zero_grad()
