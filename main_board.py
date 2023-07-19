@@ -93,7 +93,7 @@ def main():
         filename = "steps_lr_{episode}.txt"
         np.savetxt('./results/' + filename.format(episode=lr_txt), steps, delimiter=',')
         filename = "avg1k_lr_{episode}.txt"
-        np.savetxt('./results/' + filename.format(episode=lr_txt), steps, delimiter=',')
+        np.savetxt('./results/' + filename.format(episode=lr_txt), avg_every_1k, delimiter=',')
         # # Guardar
         filename = "trained_model_lr_{episode}.pt"
         torch.save(agent, './trained_models/' + filename.format(episode=lr_txt))
