@@ -89,13 +89,17 @@ def main():
         filename = "steps_conv_{episode}.txt"
         np.savetxt('./results/' + filename.format(episode=CONV_SIZE), steps, delimiter=',')
         filename = "avg1k_conv_{episode}.txt"
-        np.savetxt('./results/' + filename.format(episode=CONV_SIZE), last_1k, delimiter=',')
+        np.savetxt('./results/' + filename.format(episode=CONV_SIZE), avg_every_1k, delimiter=',')
         # # Guardar
         filename = "trained_model_conv_{episode}.pt"
         torch.save(agent, './trained_models/' + filename.format(episode=CONV_SIZE))
         CONV_SIZE = CONV_SIZE * 2
 
     print("PROCESS FINISHED SUCCESSFULLY")
+    filename = "./results/games_won_conv.txt"
+    np.savetxt(filename, games_won_reg, delimiter=',')
+    filename = "./results/times_conv.txt"
+    np.savetxt(filename, times_reg, delimiter=',')
 
 
 if __name__ == '__main__':
