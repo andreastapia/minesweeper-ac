@@ -25,10 +25,10 @@ WIDTH = 9
 HEIGHT = 9
 
 """ Reward value for correct movement """
-STEP_REWARD = 2
+STEP_REWARD = 1
 
 """ Reward value for winning the game """
-WIN_REWARD = 20
+WIN_REWARD = 10
 
 """ Reward value for losing the game """
 LOSE_REWARD = -10
