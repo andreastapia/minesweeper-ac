@@ -18,7 +18,7 @@ def running_average(x, N):
 
 
 def main():
-    CONV_SIZE = 128
+    CONV_SIZE = 32
     learning_rates = [0.01, 0.005, 0.001, 0.0005, 0.0001]
     games_won_reg = []
     times_reg = []
@@ -29,6 +29,7 @@ def main():
         total_num_episodes = int(5e4)  # Total number of episodes
 
         #input_channels, conv_hidden, output_channels, learning_rate, gammaS
+        print("Learning rate:", learning_rate)
         agent = ActorCriticAgent(1,CONV_SIZE,81,learning_rate,0.99)
 
         rewards = []
